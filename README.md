@@ -3,10 +3,6 @@
 This repository contains the code and results for the paper:
 
 > **"Explainable multi-source AI framework for deep brain stimulation candidacy screening in Parkinson's disease"**
->
-> Kartic, Jiwon Lim, Tae-Sik Park
->
-> Department of Life Sciences, Gachon University, Republic of Korea
 
 ## Interactive Demo
 
