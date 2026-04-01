@@ -91,6 +91,3 @@ python gradio_app_v2.py
 
 This project is for research purposes only. Not intended for clinical decision-making without proper validation.
 
-## Funding
-
-This study was funded by the Gachon University research fund (202307940001) and (202401010001).
