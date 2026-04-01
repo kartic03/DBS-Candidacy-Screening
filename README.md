@@ -1,9 +1,5 @@
 # Explainable Multi-Source AI Framework for DBS Candidacy Screening in Parkinson's Disease
 
-This repository contains the code and results for the paper:
-
-> **"Explainable multi-source AI framework for deep brain stimulation candidacy screening in Parkinson's disease"**
-
 ## Interactive Demo
 
 Try the live screening tool: [https://huggingface.co/spaces/kartic03/dbs-candidacy-screening](https://huggingface.co/spaces/kartic03/dbs-candidacy-screening)
