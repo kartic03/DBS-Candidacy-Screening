@@ -87,16 +87,6 @@ python gradio_app_v2.py
 # Opens at http://localhost:7860
 ```
 
-## Citation
-
-If you use this code, please cite:
-
-```
-Kartic, Lim J, Park TS. Explainable multi-source AI framework for deep
-brain stimulation candidacy screening in Parkinson's disease. Journal of
-Biomedical Informatics. 2026.
-```
-
 ## License
 
 This project is for research purposes only. Not intended for clinical decision-making without proper validation.
