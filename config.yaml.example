@@ -1,0 +1,28 @@
+# Configuration template - copy to config.yaml and fill in your API keys
+hardware:
+  gpu: "cuda"
+  gpu_name: "NVIDIA RTX 4070"
+  vram_gb: 12
+  cpu_cores: 24
+  cpu_threads: 32
+  ram_gb: 128
+  n_workers: 8
+  pin_memory: true
+  mixed_precision: true
+  cudnn_benchmark: true
+
+model:
+  seed: 42
+  device: "cuda"
+
+training:
+  n_folds: 5
+  smote: true
+  bootstrap_n: 2000
+  n_jobs: -1
+
+groq:
+  api_key: "YOUR_GROQ_API_KEY"
+  model: "llama-3.3-70b-versatile"
+  max_tokens: 200
+  temperature: 0.3

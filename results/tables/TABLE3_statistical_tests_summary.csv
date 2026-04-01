@@ -1,0 +1,13 @@
+Test,Comparison,N_tested,N_significant,Key_result
+Mann-Whitney U + BH-FDR,DBS+ vs DBS- (clinical features),96,8,8/96 features significant (FDR < 0.05)
+DeLong test,XGBoost_AllFeat vs SVM_AllFeat (WearGait-PD),1,0,"Z=0.444, p=0.6573"
+DeLong test,XGBoost vs MLP (PADS_Wearable_PD_vs_Healthy),1,1,OOF predictions not stored; AUC comparison only
+DeLong test,XGBoost vs MLP (GaitPDB_Gait_PD_vs_Control),1,1,OOF predictions not stored; AUC comparison only
+DeLong test,XGBoost vs MLP (GaitPDB_Gait_HY_ge_2.5),1,1,OOF predictions not stored; AUC comparison only
+DeLong test,XGBoost vs MLP (UCI_Voice_PD_vs_Healthy),1,1,OOF predictions not stored; AUC comparison only
+Motor subtype analysis,Akinetic-Rigid (n=73),73,,"DBS+ rate=28.8%, UPDRS-III=26.0"
+Motor subtype analysis,Tremor-Dominant (n=8),8,,"DBS+ rate=25.0%, UPDRS-III=21.9"
+Post-hoc power analysis,XGB_Top10 vs SVM_Top10,"n_pos=23, n_neg=59",,Power=0.064 — Small delta + small N = underpowered
+Net Reclassification Improvement,XGBoost_Top10 vs HY_Only,,,"NRI=0.166 (events=-0.478, non-events=0.644)"
+Calibration (Platt scaling),XGBoost,,,"Brier: 0.216→0.192, ECE: 0.167→0.145"
+Calibration (Platt scaling),SVM,,,"Brier: 0.196→0.197, ECE: 0.141→0.050"

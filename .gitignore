@@ -1,0 +1,34 @@
+# API keys and secrets
+config.yaml
+.env
+*.key
+
+# Raw data (too large, publicly available)
+data/raw/
+
+# Model checkpoints (too large)
+results/checkpoints/
+
+# Manuscript files (not for public)
+manuscript/
+cover_letter*
+declaration_*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+CLAUDE.md
+CLAUDE_*.md
+.claude/
