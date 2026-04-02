@@ -48,10 +48,8 @@ print(f"[JBI App] FIG_DIR exists: {FIG_DIR.exists()}")
 model = joblib.load(APP_DIR / "svm_7feat_model.joblib")
 features = joblib.load(APP_DIR / "svm_7feat_features.joblib")
 model_scaler = joblib.load(APP_DIR / "svm_7feat_scaler.joblib")
-# Also load XGBoost proxy for SHAP (SVM doesn't support TreeExplainer)
-import xgboost as xgb
-_xgb_proxy = joblib.load(APP_DIR / "xgb_top10_model.joblib") if (APP_DIR / "xgb_top10_model.joblib").exists() else None
-explainer = shap.TreeExplainer(_xgb_proxy) if _xgb_proxy else None
+# No TreeExplainer for SVM - use perturbation-based feature importance instead
+explainer = None
 
 # Load Groq API key
 GROQ_KEY = ""
@@ -319,9 +317,18 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 <p style="margin:0; font-size:0.95rem;">{rec}</p>
 </div>"""
 
-    # SHAP values
-    shap_vals = explainer(X)
-    sv = shap_vals.values[0, :, 1] if shap_vals.values.ndim == 3 else shap_vals.values[0]
+    # SHAP values (perturbation-based for SVM)
+    if explainer is not None:
+        shap_vals = explainer(X)
+        sv = shap_vals.values[0, :, 1] if shap_vals.values.ndim == 3 else shap_vals.values[0]
+    else:
+        base_prob = prob
+        sv = np.zeros(len(features))
+        for i in range(len(features)):
+            X_pert = X.copy()
+            X_pert[0, i] = 0.0
+            pert_prob = float(model.predict_proba(X_pert)[0, 1])
+            sv[i] = base_prob - pert_prob
 
     # SHAP waterfall (Plotly)
     abs_sv = np.abs(sv)
