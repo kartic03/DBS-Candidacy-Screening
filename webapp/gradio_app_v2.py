@@ -44,13 +44,14 @@ print(f"[JBI App] APP_DIR: {APP_DIR}")
 print(f"[JBI App] PROJECT_ROOT: {PROJECT_ROOT}")
 print(f"[JBI App] FIG_DIR exists: {FIG_DIR.exists()}")
 
-# Load top-10 model (same as paper's lead result: AUC=0.87 LOOCV)
-model = joblib.load(APP_DIR / "xgb_top10_model.joblib")
-features = joblib.load(APP_DIR / "xgb_top10_features.joblib")
-model_scaler = joblib.load(APP_DIR / "xgb_top10_scaler.joblib")
-model_imputer = joblib.load(APP_DIR / "xgb_top10_imputer.joblib")
-explainer = shap.TreeExplainer(model)
-print(f"[JBI App] Loaded top-10 model: {features}")
+# Load 7-feat pre-registered SVM (paper's primary model: AUC=0.880 LOOCV)
+model = joblib.load(APP_DIR / "svm_7feat_model.joblib")
+features = joblib.load(APP_DIR / "svm_7feat_features.joblib")
+model_scaler = joblib.load(APP_DIR / "svm_7feat_scaler.joblib")
+# Also load XGBoost proxy for SHAP (SVM doesn't support TreeExplainer)
+import xgboost as xgb
+_xgb_proxy = joblib.load(APP_DIR / "xgb_top10_model.joblib") if (APP_DIR / "xgb_top10_model.joblib").exists() else None
+explainer = shap.TreeExplainer(_xgb_proxy) if _xgb_proxy else None
 
 # Load Groq API key
 GROQ_KEY = ""
@@ -79,18 +80,15 @@ df_groq = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "groq_repor
 df_shap_clin = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "shap_clinical_importance.csv")
 df_mann_whitney = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "mann_whitney_v2.csv")
 
-# Feature display names (top-10 from XGBoost importance selection)
+# Feature display names (7 pre-registered from DBS literature)
 FEATURE_LABELS = {
-    "MDSUPDRS_3-4-L": "Left finger tapping (III-4-L)",
-    "MDSUPDRS_3-11": "Freezing of gait (III-11)",
     "disease_duration_years": "Disease duration (years)",
-    "MDSUPDRS_3-6-R": "Right pronation-supination (III-6-R)",
-    "asymmetry_toe_tapping": "Toe tapping asymmetry",
-    "asymmetry_finger_tapping": "Finger tapping asymmetry",
-    "MDSUPDRS_3-4-R": "Right finger tapping (III-4-R)",
+    "updrs_part3_total": "UPDRS-III total",
+    "hoehn_yahr": "Hoehn & Yahr stage",
+    "total_asymmetry": "Total motor asymmetry",
+    "updrs_part2_total": "UPDRS-II total (daily living)",
     "subdomain_bradykinesia_UE": "Upper-limb bradykinesia",
     "MDSUPDRS_1-1": "Cognitive impairment (I-1)",
-    "total_asymmetry": "Total motor asymmetry",
 }
 
 # ══════════════════════════════════════════════════════════════════════
@@ -289,25 +287,21 @@ def apply_white_card(fig):
 # PREDICTION ENGINE
 # ══════════════════════════════════════════════════════════════════════
 
-def predict_dbs(finger_L, fog, disease_duration, pronation_R, asym_toe,
-                asym_finger, finger_R, brady_UE, cognitive, total_asym):
+def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
+                updrs2_total, brady_UE, cognitive):
 
     vals = {
-        "MDSUPDRS_3-4-L": float(finger_L),
-        "MDSUPDRS_3-11": float(fog),
         "disease_duration_years": float(disease_duration),
-        "MDSUPDRS_3-6-R": float(pronation_R),
-        "asymmetry_toe_tapping": float(asym_toe),
-        "asymmetry_finger_tapping": float(asym_finger),
-        "MDSUPDRS_3-4-R": float(finger_R),
+        "updrs_part3_total": float(updrs3_total),
+        "hoehn_yahr": float(hoehn_yahr),
+        "total_asymmetry": float(total_asym),
+        "updrs_part2_total": float(updrs2_total),
         "subdomain_bradykinesia_UE": float(brady_UE),
         "MDSUPDRS_1-1": float(cognitive),
-        "total_asymmetry": float(total_asym),
     }
 
     X_raw = np.array([[vals[f] for f in features]], dtype=np.float32)
-    X = model_imputer.transform(X_raw)
-    X = model_scaler.transform(X)
+    X = model_scaler.transform(X_raw)
     prob = float(model.predict_proba(X)[0, 1])
     pct = prob * 100
 
@@ -372,8 +366,8 @@ def predict_dbs(finger_L, fog, disease_duration, pronation_R, asym_toe,
     # Clinical summary
     profile = []
     if brady_UE > 8: profile.append("bradykinetic")
-    if fog > 1: profile.append("gait-impaired")
-    if abs(asym_finger) > 0.3 or abs(asym_toe) > 0.3: profile.append("asymmetric")
+    if updrs3_total > 30: profile.append("moderate-severe motor")
+    if total_asym > 0.3: profile.append("asymmetric")
     if not profile: profile = ["mild motor symptoms"]
 
     summary_md = f"""### Clinical summary
@@ -381,15 +375,17 @@ def predict_dbs(finger_L, fog, disease_duration, pronation_R, asym_toe,
 | Parameter | Value |
 |-----------|-------|
 | PD duration | {int(disease_duration)} years |
-| Upper-limb bradykinesia | {brady_UE:.0f} |
-| Finger tapping (L/R) | {finger_L:.0f} / {finger_R:.0f} |
-| Freezing of gait | {fog:.0f} |
+| UPDRS-III total | {updrs3_total:.0f} |
+| H&Y stage | {hoehn_yahr} |
+| UPDRS-II total | {updrs2_total:.0f} |
+| Bradykinesia (UE) | {brady_UE:.0f} |
 | Motor asymmetry | {total_asym:.2f} |
+| Cognitive (I-1) | {cognitive:.0f} |
 | Motor profile | {', '.join(profile).capitalize()} |
 | DBS probability | **{pct:.1f}%** ({tier}) |
 
 ---
-*Top-10 feature model (LOOCV AUC = 0.87). Research prototype, not for clinical use.*"""
+*Pre-registered 7-feature SVM (LOOCV AUC = 0.88). Research prototype, not for clinical use.*"""
 
     return risk_html, fig_shap, drivers_md, summary_md
 
@@ -398,8 +394,8 @@ def predict_dbs(finger_L, fog, disease_duration, pronation_R, asym_toe,
 # GROQ LLM REPORT
 # ══════════════════════════════════════════════════════════════════════
 
-def generate_groq_report(finger_L, fog, disease_duration, pronation_R, asym_toe,
-                         asym_finger, finger_R, brady_UE, cognitive, total_asym):
+def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
+                         updrs2_total, brady_UE, cognitive):
     if not GROQ_KEY:
         return "Groq API key not configured. Set groq.api_key in config.yaml to enable LLM reports."
 
@@ -408,24 +404,22 @@ def generate_groq_report(finger_L, fog, disease_duration, pronation_R, asym_toe,
         client = Groq(api_key=GROQ_KEY)
 
         vals = {
-            "MDSUPDRS_3-4-L": float(finger_L), "MDSUPDRS_3-11": float(fog),
             "disease_duration_years": float(disease_duration),
-            "MDSUPDRS_3-6-R": float(pronation_R),
-            "asymmetry_toe_tapping": float(asym_toe),
-            "asymmetry_finger_tapping": float(asym_finger),
-            "MDSUPDRS_3-4-R": float(finger_R),
+            "updrs_part3_total": float(updrs3_total),
+            "hoehn_yahr": float(hoehn_yahr),
+            "total_asymmetry": float(total_asym),
+            "updrs_part2_total": float(updrs2_total),
             "subdomain_bradykinesia_UE": float(brady_UE),
             "MDSUPDRS_1-1": float(cognitive),
-            "total_asymmetry": float(total_asym),
         }
         X_raw = np.array([[vals[f] for f in features]], dtype=np.float32)
-        X = model_scaler.transform(model_imputer.transform(X_raw))
+        X = model_scaler.transform(X_raw)
         prob = float(model.predict_proba(X)[0, 1]) * 100
         tier = "HIGH" if prob > 70 else "MODERATE" if prob > 30 else "LOW"
 
         profile = []
         if brady_UE > 8: profile.append("bradykinetic")
-        if fog > 1: profile.append("gait-impaired")
+        if updrs3_total > 30: profile.append("moderate-severe")
         if not profile: profile = ["mild"]
 
         system_prompt = (
@@ -436,10 +430,10 @@ def generate_groq_report(finger_L, fog, disease_duration, pronation_R, asym_toe,
         )
         user_prompt = (
             f"DBS Prob: {prob:.1f}% ({tier}) | "
-            f"Duration: {int(disease_duration)}yr | Bradykinesia UE: {brady_UE:.0f} | "
-            f"Finger tap L/R: {finger_L:.0f}/{finger_R:.0f} | FOG: {fog:.0f} | "
-            f"Motor asymmetry: {total_asym:.2f} | Cognitive: {cognitive:.0f} | "
-            f"Motor: {', '.join(profile)}"
+            f"Duration: {int(disease_duration)}yr | UPDRS-III: {updrs3_total:.0f} | "
+            f"H&Y: {hoehn_yahr} | UPDRS-II: {updrs2_total:.0f} | "
+            f"Bradykinesia UE: {brady_UE:.0f} | Asymmetry: {total_asym:.2f} | "
+            f"Cognitive: {cognitive:.0f} | Motor: {', '.join(profile)}"
         )
 
         response = client.chat.completions.create(
@@ -629,8 +623,8 @@ This interactive demonstration accompanies the manuscript:
 
 ### How it works
 
-1. **Input** clinical parameters (MDS-UPDRS items, disease duration, motor asymmetry indices)
-2. **XGBoost classifier** predicts DBS candidacy probability using the top-10 selected clinical features
+1. **Input** clinical parameters (UPDRS-III, UPDRS-II, H&Y stage, disease duration, motor asymmetry, bradykinesia, cognitive status)
+2. **SVM classifier** predicts DBS candidacy probability using 7 pre-registered clinical features from DBS literature
 3. **SHAP TreeExplainer** computes per-feature contributions to explain the prediction
 4. **Risk stratification** classifies patients as HIGH (>70%), MODERATE (30-70%), or LOW (<30%)
 5. **LLM report** (optional) generates a structured clinical narrative via Groq Llama 3.3 70B
@@ -704,28 +698,22 @@ with gr.Blocks(
 
                 # LEFT: Patient inputs
                 with gr.Column(scale=2, min_width=350):
-                    gr.Markdown("### Patient parameters (top-10 features)")
+                    gr.Markdown("### Patient parameters (7 pre-registered features)")
 
                     with gr.Group():
-                        gr.Markdown("**Disease history**")
+                        gr.Markdown("**Disease history and staging**")
                         dur_in = gr.Slider(0, 30, value=6, step=0.5, label="Disease duration (years)")
+                        hy_in = gr.Slider(0, 5, value=2.0, step=0.5, label="Hoehn & Yahr stage")
 
                     with gr.Group():
-                        gr.Markdown("**MDS-UPDRS motor items**")
-                        with gr.Row():
-                            finger_L_in = gr.Slider(0, 4, value=1, step=1, label="Finger tapping - Left (III-4-L)")
-                            finger_R_in = gr.Slider(0, 4, value=1, step=1, label="Finger tapping - Right (III-4-R)")
-                        with gr.Row():
-                            pronation_R_in = gr.Slider(0, 4, value=1, step=1, label="Pronation-supination - Right (III-6-R)")
-                            fog_in = gr.Slider(0, 4, value=0, step=1, label="Freezing of gait (III-11)")
+                        gr.Markdown("**MDS-UPDRS scores**")
+                        updrs3_in = gr.Slider(0, 60, value=25, step=1, label="UPDRS-III total (motor)")
+                        updrs2_in = gr.Slider(0, 40, value=10, step=1, label="UPDRS-II total (daily living)")
                         brady_UE_in = gr.Slider(0, 20, value=6, step=1, label="Upper-limb bradykinesia sub-score")
                         cognitive_in = gr.Slider(0, 4, value=0, step=1, label="Cognitive impairment (I-1)")
 
                     with gr.Group():
-                        gr.Markdown("**Motor asymmetry indices** (-1 to 1; 0 = symmetric)")
-                        with gr.Row():
-                            asym_finger_in = gr.Slider(-1, 1, value=0.0, step=0.05, label="Finger tapping asymmetry")
-                            asym_toe_in = gr.Slider(-1, 1, value=0.0, step=0.05, label="Toe tapping asymmetry")
+                        gr.Markdown("**Motor asymmetry** (0 = symmetric, 0.6+ = severe)")
                         total_asym_in = gr.Slider(0, 0.7, value=0.3, step=0.02, label="Total motor asymmetry")
 
                 # RIGHT: Results
@@ -742,8 +730,8 @@ with gr.Blocks(
 
             # Wire inputs (same order as predict_dbs arguments)
             all_inputs = [
-                finger_L_in, fog_in, dur_in, pronation_R_in, asym_toe_in,
-                asym_finger_in, finger_R_in, brady_UE_in, cognitive_in, total_asym_in,
+                dur_in, updrs3_in, hy_in, total_asym_in,
+                updrs2_in, brady_UE_in, cognitive_in,
             ]
             all_outputs = [risk_output, shap_output, drivers_output, summary_output]
 
