@@ -1,6 +1,6 @@
 # Explainable Multi-Source AI Framework for DBS Candidacy Screening in Parkinson's Disease
 
-> Kartic, Jiwon Lim, Tae-Sik Park | Gachon University
+> Kartic| Gachon University
 
 ## Interactive Demo
 
