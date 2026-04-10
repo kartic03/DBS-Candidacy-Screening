@@ -167,7 +167,7 @@ def main():
     y_pads = df_pads["pd_label"].values.astype(int)
 
     imp_wearable, _ = train_xgb_and_explain(
-        X_pads, y_pads, pads_feats, "wearable", "PD vs Healthy (n=370)",
+        X_pads, y_pads, pads_feats, "wearable", "PD vs Healthy (n=355)",
         top_k=20, color="#1f77b4"
     )
     all_importances["wearable"] = imp_wearable

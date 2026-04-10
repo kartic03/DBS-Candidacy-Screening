@@ -234,7 +234,7 @@ def fig4_roc_curves():
     pads_feats = [c for c in df_pads.columns if c not in pads_meta and pd.api.types.is_numeric_dtype(df_pads[c])]
     y_pads_prob = get_cv_roc(df_pads[pads_feats].values.astype(np.float32),
                               df_pads["pd_label"].values.astype(int))
-    datasets.append(("B. PADS Wearable Sensor\n(PD vs Healthy, 5-fold CV n=370)",
+    datasets.append(("B. PADS Wearable Sensor\n(PD vs Healthy, 5-fold CV n=355)",
                      df_pads["pd_label"].values, y_pads_prob, COLORS['wearable']))
 
     # C. GaitPDB Gait (5-fold CV)
@@ -305,7 +305,7 @@ def fig5_multisource_validation():
     pads = df_mod[(df_mod["Dataset"] == "PADS_Wearable")]
     if len(pads) > 0:
         best = pads.loc[pads["AUC_ROC"].idxmax()]
-        entries.append({"Dataset": "PADS\n(Wearable, n=370)",
+        entries.append({"Dataset": "PADS\n(Wearable, n=355)",
                        "AUC": best["AUC_ROC"], "CI_low": best["AUC_CI_low"],
                        "CI_high": best["AUC_CI_high"], "color": COLORS['wearable']})
 

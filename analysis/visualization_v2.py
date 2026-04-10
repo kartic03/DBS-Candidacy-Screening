@@ -233,7 +233,7 @@ def fig4_roc_curves():
     pm = ["subject_id","condition","age","gender","height","weight","pd_label","n_files_processed","handedness"]
     pf = [c for c in df2.columns if c not in pm and pd.api.types.is_numeric_dtype(df2[c])]
     prob2 = get_cv_probs(df2[pf].values.astype(np.float32), df2["pd_label"].values.astype(int))
-    datasets.append(('PADS Wearable Sensor', '5-fold CV, n = 370', df2["pd_label"].values, prob2, MODALITY_COLORS['wearable']))
+    datasets.append(('PADS Wearable Sensor', '5-fold CV, n = 355', df2["pd_label"].values, prob2, MODALITY_COLORS['wearable']))
 
     # C. GaitPDB
     df3 = pd.read_csv(os.path.join(PROC_DIR, "gait_features", "gaitpdb_sensor_features.csv"))
@@ -291,9 +291,9 @@ def fig5_multisource():
 
     entries = [
         {'name': 'WearGait-PD\nClinical (n=82)', 'auc': 0.878, 'lo': 0.792, 'hi': 0.950, 'color': MODALITY_COLORS['clinical'], 'label': 'Real DBS'},
-        {'name': 'PADS\nWearable (n=370)', 'auc': 0.860, 'lo': 0.818, 'hi': 0.897, 'color': MODALITY_COLORS['wearable'], 'label': 'PD vs Healthy'},
-        {'name': 'GaitPDB\nGait (n=165)', 'auc': 0.988, 'lo': 0.973, 'hi': 0.998, 'color': MODALITY_COLORS['gait'], 'label': 'PD vs Control'},
-        {'name': 'UCI Voice\nVoice (n=195)', 'auc': 0.972, 'lo': 0.945, 'hi': 0.992, 'color': MODALITY_COLORS['voice'], 'label': 'PD vs Healthy'},
+        {'name': 'PADS\nWearable (n=355)', 'auc': 0.859, 'lo': 0.818, 'hi': 0.897, 'color': MODALITY_COLORS['wearable'], 'label': 'PD vs Healthy'},
+        {'name': 'GaitPDB\nGait (n=165)', 'auc': 0.996, 'lo': 0.973, 'hi': 0.998, 'color': MODALITY_COLORS['gait'], 'label': 'PD vs Control'},
+        {'name': 'UCI Voice\nVoice (n=195)', 'auc': 0.953, 'lo': 0.945, 'hi': 0.992, 'color': MODALITY_COLORS['voice'], 'label': 'PD vs Healthy'},
     ]
 
     fig, ax = plt.subplots(figsize=(9, 5))

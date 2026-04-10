@@ -255,7 +255,7 @@ def fig4():
     pm = ["subject_id","condition","age","gender","height","weight","pd_label","n_files_processed","handedness"]
     pf = [c for c in df2.columns if c not in pm and pd.api.types.is_numeric_dtype(df2[c])]
     p2 = get_cv_probs(df2[pf].values.astype(np.float32), df2["pd_label"].values.astype(int))
-    datasets.append(('PADS Wearable','5-fold CV, n = 370',df2["pd_label"].values,p2,C['blue']))
+    datasets.append(('PADS Wearable','5-fold CV, n = 355',df2["pd_label"].values,p2,C['blue']))
 
     # C — GaitPDB
     df3 = pd.read_csv(os.path.join(PROC_DIR,"gait_features","gaitpdb_sensor_features.csv"))
@@ -301,9 +301,9 @@ def fig5():
     print("  Fig 5: Multi-source validation...")
     entries = [
         {'name':'WearGait-PD\n(Clinical, n=82)', 'auc':0.878,'lo':0.792,'hi':0.950,'color':C['orange']},
-        {'name':'PADS\n(Wearable, n=370)',       'auc':0.860,'lo':0.818,'hi':0.897,'color':C['blue']},
-        {'name':'GaitPDB\n(Gait, n=165)',        'auc':0.988,'lo':0.973,'hi':0.998,'color':C['green']},
-        {'name':'UCI Voice\n(Voice, n=195)',     'auc':0.972,'lo':0.945,'hi':0.992,'color':C['pink']},
+        {'name':'PADS\n(Wearable, n=355)',       'auc':0.859,'lo':0.818,'hi':0.897,'color':C['blue']},
+        {'name':'GaitPDB\n(Gait, n=165)',        'auc':0.996,'lo':0.973,'hi':0.998,'color':C['green']},
+        {'name':'UCI Voice\n(Voice, n=195)',     'auc':0.953,'lo':0.945,'hi':0.992,'color':C['pink']},
     ]
 
     fig, ax = plt.subplots(figsize=(7.0, 3.5))
@@ -589,7 +589,7 @@ def all_shap():
     pm = ["subject_id","condition","age","gender","height","weight","pd_label","n_files_processed","handedness"]
     pf = [c for c in df2.columns if c not in pm and pd.api.types.is_numeric_dtype(df2[c])]
     shap_beeswarm(df2[pf].values.astype(np.float32), df2["pd_label"].values.astype(int),
-                  pf, 'Wearable Sensor Features', 'PD vs Healthy (PADS, n = 370)',
+                  pf, 'Wearable Sensor Features', 'PD vs Healthy (PADS, n = 355)',
                   'shap_wearable_beeswarm')
 
     # Gait

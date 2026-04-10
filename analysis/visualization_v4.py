@@ -406,7 +406,7 @@ def fig4():
           if c not in pm and pd.api.types.is_numeric_dtype(df2[c])]
     p2 = get_cv_probs(df2[pf].values.astype(np.float32),
                       df2["pd_label"].values.astype(int))
-    datasets.append(('PADS Wearable', '5-fold CV, n = 370',
+    datasets.append(('PADS Wearable', '5-fold CV, n = 355',
                      df2["pd_label"].values, p2, C['blue']))
 
     # C — GaitPDB
@@ -469,12 +469,12 @@ def fig5():
     entries = [
         {'name': 'WearGait-PD\n(Clinical, n=82)',
          'auc': 0.878, 'lo': 0.792, 'hi': 0.950, 'color': C['orange']},
-        {'name': 'PADS\n(Wearable, n=370)',
-         'auc': 0.860, 'lo': 0.818, 'hi': 0.897, 'color': C['blue']},
+        {'name': 'PADS\n(Wearable, n=355)',
+         'auc': 0.859, 'lo': 0.818, 'hi': 0.897, 'color': C['blue']},
         {'name': 'GaitPDB\n(Gait, n=165)',
-         'auc': 0.988, 'lo': 0.973, 'hi': 0.998, 'color': C['green']},
+         'auc': 0.996, 'lo': 0.973, 'hi': 0.998, 'color': C['green']},
         {'name': 'UCI Voice\n(Voice, n=195)',
-         'auc': 0.972, 'lo': 0.945, 'hi': 0.992, 'color': C['pink']},
+         'auc': 0.953, 'lo': 0.945, 'hi': 0.992, 'color': C['pink']},
     ]
 
     fig, ax = plt.subplots(figsize=(7.0, 3.5))
@@ -774,7 +774,7 @@ def all_shap():
     shap_beeswarm(df2[pf].values.astype(np.float32),
                   df2["pd_label"].values.astype(int),
                   pf, 'Wearable sensor features',
-                  'PD vs Control (PADS, n = 370)',
+                  'PD vs Control (PADS, n = 355)',
                   'shap_wearable_beeswarm')
 
     # Gait

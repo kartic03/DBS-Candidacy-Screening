@@ -303,7 +303,7 @@ def main():
     pm = ["subject_id","condition","age","gender","height","weight","pd_label","n_files_processed","handedness"]
     pf = [c for c in df2.columns if c not in pm and pd.api.types.is_numeric_dtype(df2[c])]
     make_shap_fig(df2[pf].values.astype(np.float32), df2["pd_label"].values.astype(int),
-                  pf, "Wearable Sensor Features", "PD vs Healthy (PADS, n = 370)",
+                  pf, "Wearable Sensor Features", "PD vs Healthy (PADS, n = 355)",
                   OI['blue'], "shap_wearable_beeswarm", max_display=15)
 
     # ── SHAP: Gait ───────────────────────────────────────────────────────

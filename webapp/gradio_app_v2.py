@@ -44,7 +44,7 @@ print(f"[JBI App] APP_DIR: {APP_DIR}")
 print(f"[JBI App] PROJECT_ROOT: {PROJECT_ROOT}")
 print(f"[JBI App] FIG_DIR exists: {FIG_DIR.exists()}")
 
-# Load 7-feat pre-registered SVM (paper's primary model: AUC=0.880 LOOCV)
+# Load 7-feat pre-registered SVM (paper's primary model: AUC=0.903 LOOCV)
 model = joblib.load(APP_DIR / "svm_7feat_model.joblib")
 features = joblib.load(APP_DIR / "svm_7feat_features.joblib")
 model_scaler = joblib.load(APP_DIR / "svm_7feat_scaler.joblib")
@@ -543,15 +543,15 @@ def build_shap_importance_plot():
 
 def build_dataset_pie():
     """Dataset sizes donut chart."""
-    labels = ["WearGait-PD (82)", "PADS (370)", "GaitPDB (165)", "UCI Voice (195)"]
-    values = [82, 370, 165, 195]
+    labels = ["WearGait-PD (82)", "PADS (355)", "GaitPDB (165)", "UCI Voice (195)"]
+    values = [82, 355, 165, 195]
     colors_pie = ["#004d40", "#0277bd", "#2e7d32", "#7b1fa2"]
 
     fig = go.Figure(go.Pie(labels=labels, values=values, hole=0.4,
                            marker=dict(colors=colors_pie),
                            textinfo="label+value", textfont=dict(size=11),
                            hovertemplate="<b>%{label}</b><br>n = %{value}<extra></extra>"))
-    fig.update_layout(title=dict(text="Dataset sizes (n = 812 total)", font=dict(size=14, color="#333")),
+    fig.update_layout(title=dict(text="Dataset sizes (n = 797 total)", font=dict(size=14, color="#333")),
                       height=350, showlegend=False,
                       margin=dict(t=50, b=20, l=20, r=20),
                       paper_bgcolor=PLOT_BG, font=PLOT_FONT)
@@ -642,15 +642,15 @@ This interactive demonstration accompanies the manuscript:
 |--------|-------|
 | Primary AUC (LOOCV, n=82) | 0.87 (95% CI: 0.79-0.95) |
 | Permutation test | p = 0.003 |
-| Wearable validation (PADS, n=370) | AUC = 0.86 |
-| Gait validation (GaitPDB, n=165) | AUC = 0.99 |
-| Voice validation (UCI, n=195) | AUC = 0.97 |
-| Total subjects across 4 datasets | 812 |
+| Wearable validation (PADS, n=355) | AUC = 0.859 |
+| Gait validation (GaitPDB, n=165) | AUC = 0.996 |
+| Voice validation (UCI, n=195) | AUC = 0.953 |
+| Total subjects across 4 datasets | 797 |
 
 ### Datasets
 
 - **WearGait-PD** (FDA CDRH): 82 PD patients, 23 DBS+, real DBS labels
-- **PADS** (PhysioNet): 370 subjects, 100 Hz smartwatch IMU, 11 motor tasks
+- **PADS** (PhysioNet): 355 subjects, 100 Hz smartwatch IMU, 11 motor tasks
 - **GaitPDB** (PhysioNet): 165 subjects, 100 Hz bilateral force plates
 - **UCI Parkinson's** (UCI MLR): 195 recordings, 22 acoustic voice features
 
@@ -757,11 +757,11 @@ with gr.Blocks(
             # Key metrics row
             gr.HTML("""
             <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:1rem; margin:1rem 0;">
-                <div class="stat-card"><h3>0.87</h3><p>Primary AUC<br>(LOOCV)</p></div>
-                <div class="stat-card"><h3>0.86</h3><p>Wearable AUC<br>(PADS)</p></div>
-                <div class="stat-card"><h3>0.99</h3><p>Gait AUC<br>(GaitPDB)</p></div>
-                <div class="stat-card"><h3>0.97</h3><p>Voice AUC<br>(UCI)</p></div>
-                <div class="stat-card"><h3>812</h3><p>Total subjects<br>(4 datasets)</p></div>
+                <div class="stat-card"><h3>0.903</h3><p>Primary AUC<br>(LOOCV)</p></div>
+                <div class="stat-card"><h3>0.859</h3><p>Wearable AUC<br>(PADS)</p></div>
+                <div class="stat-card"><h3>0.996</h3><p>Gait AUC<br>(GaitPDB)</p></div>
+                <div class="stat-card"><h3>0.953</h3><p>Voice AUC<br>(UCI)</p></div>
+                <div class="stat-card"><h3>797</h3><p>Total subjects<br>(4 datasets)</p></div>
             </div>
             """)
 
@@ -777,27 +777,6 @@ with gr.Blocks(
                 with gr.Column():
                     gr.Plot(value=build_shap_importance_plot, label="SHAP feature importance")
 
-            # Manuscript figures gallery
-            gr.Markdown("### Manuscript figures")
-            with gr.Row():
-                for fname, label in [
-                    ("fig4_roc_curves.png", "ROC curves"),
-                    ("fig9_calibration_dca.png", "Calibration + DCA"),
-                    ("fig5_multisource_validation.png", "Multi-source validation"),
-                ]:
-                    fpath = FIG_DIR / fname
-                    if fpath.exists():
-                        gr.Image(value=str(fpath), label=label, show_label=True)
-
-            with gr.Row():
-                for fname, label in [
-                    ("shap_clinical_beeswarm.png", "SHAP - Clinical"),
-                    ("shap_wearable_beeswarm.png", "SHAP - Wearable"),
-                    ("shap_gait_beeswarm.png", "SHAP - Gait"),
-                ]:
-                    fpath = FIG_DIR / fname
-                    if fpath.exists():
-                        gr.Image(value=str(fpath), label=label, show_label=True)
 
         # ══════════════════════════════════════════════════════════════
         # TAB 3: CASE STUDIES
@@ -808,11 +787,6 @@ with gr.Blocks(
                         "(Groq Llama 3.3 70B). These are real patients with actual DBS outcomes.")
             gr.HTML(value=get_case_studies)
 
-            # Show Groq reports figure if available
-            groq_fig = FIG_DIR / "fig8_groq_reports.png"
-            if groq_fig.exists():
-                gr.Image(value=str(groq_fig), label="LLM report cards (Fig. 5 in manuscript)",
-                         show_label=True)
 
         # ══════════════════════════════════════════════════════════════
         # TAB 4: ABOUT
@@ -820,11 +794,6 @@ with gr.Blocks(
         with gr.Tab("About", id="about"):
             gr.Markdown(ABOUT_MD)
 
-            # Study flowchart
-            flow_fig = FIG_DIR / "fig1_study_flowchart.png"
-            if flow_fig.exists():
-                gr.Image(value=str(flow_fig), label="Study design (Fig. 1)",
-                         show_label=True)
 
     # ── Footer ────────────────────────────────────────────────────────
     gr.HTML("""

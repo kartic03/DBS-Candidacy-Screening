@@ -1,6 +1,6 @@
 # Explainable Multi-Source AI Framework for DBS Candidacy Screening in Parkinson's Disease
 
-> Kartic| Gachon University
+> Kartic | Gachon University
 
 ## Interactive Demo
 
@@ -10,10 +10,10 @@ Try the live screening tool: [https://huggingface.co/spaces/kartic03/dbs-candida
 
 | Dataset | n | Modality | Model | AUC-ROC | Evaluation |
 |---------|---|----------|-------|---------|------------|
-| WearGait-PD | 82 | Clinical (real DBS labels) | 7-feat pre-registered SVM | 0.880 | LOOCV |
-| PADS | 370 | Wearable IMU (100 Hz) | XGBoost | 0.860 | 5-fold CV |
-| GaitPDB | 165 | Gait force plates (100 Hz) | XGBoost | 0.988 | 5-fold CV |
-| UCI Voice | 195 | Acoustic voice features | MLP | 0.972 | 5-fold CV |
+| WearGait-PD | 82 | Clinical (real DBS labels) | 7-feat pre-registered SVM | 0.903 | LOOCV |
+| PADS | 355 | Wearable IMU (100 Hz) | XGBoost | 0.859 | 5-fold CV |
+| GaitPDB | 165 | Gait force plates (100 Hz) | XGBoost | 0.996 | 5-fold CV |
+| UCI Voice | 195 | Acoustic voice features | MLP | 0.953 | 5-fold CV |
 
 The primary model uses 7 clinical features pre-registered from DBS surgical guidelines (CAPSIT-PD, Medicare criteria). It outperforms all published DBS screening tools: FLASQ-PD (AUC 0.629), STIMULUS (AUC 0.809), and DBS-PREDICT (AUC 0.79).
 
