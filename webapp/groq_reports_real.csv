@@ -1,0 +1,16 @@
+patient_id,dbs_prob,actual_dbs,category,report_text,hoehn_yahr,updrs_part3,disease_duration,motor_subtype
+NLS036,0.9839037151184534,1,HIGH,"[DBS_Score] 98.4% (HIGH RISK)
+[Motor_Profile] Tremor-Dominant subtype with severe bilateral motor impairment (MDS-UPDRS Part III: 46.0)
+[Key_Drivers] Disease duration (18.35 years), motor asymmetry, upper extremity bradykinesia, and cognitive impairment
+[Recommendation] DBS is strongly indicated given high candidacy score, tremor-dominant subtype, and substantial disease burden
+[Caution_Flags] Long disease duration (18.35 years) may impact DBS efficacy; tremor-dominant phenotype generally responds well to STN-DBS.",2.5,46.0,18.35,Tremor-Dominant
+NLS196,0.4879879656268024,1,BORDERLINE,"[DBS_Score] 48.8% (BORDERLINE RISK)
+[Motor_Profile] Akinetic-Rigid subtype with severe motor impairment (MDS-UPDRS Part III Total: 52.0) and advanced disease (H&Y 4.0)
+[Key_Drivers] Disease duration (14.72 years), motor asymmetry, bradykinesia, and upper extremity symptoms drive the borderline DBS candidacy
+[Recommendation] Careful multidisciplinary evaluation warranted; despite advanced motor stage, borderline model score suggests mixed prognostic features
+[Caution_Flags] H&Y stage 4.0 indicates significant postural instability; advanced disease stage may reduce DBS benefit window.",4.0,52.0,14.72,Akinetic-Rigid
+NLS102,0.0002992769067893742,0,LOW,"[DBS_Score] 0.0% (LOW RISK)
+[Motor_Profile] Akinetic-Rigid subtype with mild motor impairment (MDS-UPDRS Part III: 14.0)
+[Key_Drivers] Low total asymmetry, minimal bradykinesia, and early-stage disease (H&Y 1.5) contribute to very low DBS candidacy
+[Recommendation] Non-DBS treatment approach is appropriate given very low candidacy score and mild motor symptoms
+[Caution_Flags] Disease duration data unavailable; regular reassessment recommended to track motor progression.",1.5,14.0,,Akinetic-Rigid
