@@ -632,7 +632,7 @@ This interactive demonstration accompanies the manuscript:
 
 1. **Input** clinical parameters (UPDRS-III, UPDRS-II, H&Y stage, disease duration, motor asymmetry, bradykinesia, cognitive status)
 2. **SVM classifier** predicts DBS candidacy probability using 7 pre-registered clinical features from DBS literature
-3. **SHAP TreeExplainer** computes per-feature contributions to explain the prediction
+3. **SHAP analysis** computes per-feature contributions to explain the prediction
 4. **Risk stratification** classifies patients as HIGH (>70%), MODERATE (30-70%), or LOW (<30%)
 5. **LLM report** (optional) generates a structured clinical narrative via Groq Llama 3.3 70B
 
