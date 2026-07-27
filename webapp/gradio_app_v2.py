@@ -467,10 +467,10 @@ def build_model_comparison_plot():
     data = [
         ("XGBoost Top-10\n(WearGait-PD)", 0.87, 0.79, 0.95, "#004d40"),
         ("SVM Top-10\n(WearGait-PD)", 0.85, 0.75, 0.93, "#00897b"),
-        ("XGBoost\n(PADS Wearable)", 0.86, 0.82, 0.90, "#0277bd"),
-        ("MLP\n(PADS Wearable)", 0.86, 0.81, 0.90, "#4fc3f7"),
-        ("XGBoost\n(GaitPDB Gait)", 0.99, 0.97, 1.00, "#2e7d32"),
-        ("MLP\n(UCI Voice)", 0.97, 0.95, 0.99, "#7b1fa2"),
+        ("XGBoost\n(PADS Wearable)", 0.859, 0.817, 0.897, "#0277bd"),
+        ("MLP\n(PADS Wearable)", 0.857, 0.81, 0.90, "#4fc3f7"),
+        ("XGBoost\n(GaitPDB Gait)", 0.996, 0.973, 1.00, "#2e7d32"),
+        ("MLP\n(UCI Voice)", 0.953, 0.945, 0.992, "#7b1fa2"),
     ]
 
     names = [d[0] for d in data]
@@ -561,7 +561,7 @@ def build_dataset_pie():
 def build_auc_by_modality():
     """AUC by modality bar chart."""
     modalities = ["Clinical", "Wearable", "Gait", "Voice"]
-    aucs = [0.87, 0.86, 0.99, 0.97]
+    aucs = [0.903, 0.859, 0.996, 0.953]
     colors_bar = ["#004d40", "#0277bd", "#2e7d32", "#7b1fa2"]
 
     fig = go.Figure(go.Bar(x=modalities, y=aucs,
@@ -640,19 +640,19 @@ This interactive demonstration accompanies the manuscript:
 
 | Metric | Value |
 |--------|-------|
-| Primary AUC (LOOCV, n=82) | 0.87 (95% CI: 0.79-0.95) |
-| Permutation test | p = 0.003 |
-| Wearable validation (PADS, n=355) | AUC = 0.859 |
-| Gait validation (GaitPDB, n=165) | AUC = 0.996 |
-| Voice validation (UCI, n=195) | AUC = 0.953 |
+| Primary AUC (LOOCV, n=82, recorded DBS status) | 0.903 (95% CI: 0.832-0.960) |
+| Permutation test | p < 0.001 |
+| PADS wearable (n=355, PD vs control, exploratory) | AUC = 0.859 |
+| GaitPDB gait (n=165, PD vs control, exploratory) | AUC = 0.996 |
+| UCI voice (n=195, PD vs control, exploratory) | AUC = 0.953 |
 | Total subjects across 4 datasets | 797 |
 
 ### Datasets
 
-- **WearGait-PD** (FDA CDRH): 82 PD patients, 23 DBS+, real DBS labels
-- **PADS** (PhysioNet): 355 subjects, 100 Hz smartwatch IMU, 11 motor tasks
-- **GaitPDB** (PhysioNet): 165 subjects, 100 Hz bilateral force plates
-- **UCI Parkinson's** (UCI MLR): 195 recordings, 22 acoustic voice features
+- **WearGait-PD** (FDA CDRH): 82 PD patients, 23 DBS-positive, recorded DBS status labels (primary)
+- **PADS** (PhysioNet): 355 subjects, 100 Hz smartwatch IMU, 11 motor tasks (PD vs control, exploratory)
+- **GaitPDB** (PhysioNet): 165 subjects, 100 Hz bilateral force plates (PD vs control, exploratory)
+- **UCI Parkinson's** (UCI MLR): 195 recordings, 22 acoustic voice features (PD vs control, exploratory)
 
 ### Limitations
 
