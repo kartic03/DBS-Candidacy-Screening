@@ -29,9 +29,6 @@ The primary model uses 7 clinical features pre-registered from DBS surgical guid
 ├── webapp/              # Gradio web application
 │   ├── gradio_app_v2.py
 │   └── svm_7feat_*.joblib
-├── results/
-│   ├── figures/         # Manuscript figures
-│   └── tables/          # Result tables
 ├── requirements.txt
 └── config.yaml.example
 ```
