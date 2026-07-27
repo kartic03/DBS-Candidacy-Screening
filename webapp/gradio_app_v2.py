@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-DBS Candidacy Screening Tool v2 - Polished Gradio Web Application
+Recorded DBS Status Prediction Tool v2 - Polished Gradio Web Application
 ==================================================================
-An Explainable Multi-Source AI Framework for Deep Brain Stimulation
-Candidacy Screening in Parkinson's Disease
+Explainable prediction of recorded deep brain stimulation status in
+Parkinson's disease (preliminary research model, not for clinical use)
 
 Features:
   - Tab 1: Interactive DBS screening with real-time SHAP explanations
@@ -431,7 +431,7 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 
         system_prompt = (
             "You are a board-certified movement disorder neurologist specializing in DBS "
-            "patient selection. Generate a concise evidence-based DBS candidacy report. "
+            "patient selection. Generate a concise evidence-based recorded DBS status report. "
             "Format: [DBS_Score][Motor_Profile][Key_Drivers][Recommendation][Caution_Flags]. "
             "Length: 120-160 words. Tone: clinical, direct."
         )
@@ -624,14 +624,14 @@ ABOUT_MD = """
 
 This interactive demonstration accompanies the manuscript:
 
-> **"Explainable multi-source AI framework for deep brain stimulation candidacy screening in Parkinson's disease"**
+> **"Explainable prediction of recorded deep brain stimulation status in Parkinson's disease: a preliminary retrospective model with exploratory cross-dataset biomarker analyses"**
 >
 > Kartic, Gachon University
 
 ### How it works
 
 1. **Input** clinical parameters (UPDRS-III, UPDRS-II, H&Y stage, disease duration, motor asymmetry, bradykinesia, cognitive status)
-2. **SVM classifier** predicts DBS candidacy probability using 7 pre-registered clinical features from DBS literature
+2. **SVM classifier** predicts recorded DBS status probability using 7 pre-registered clinical features from DBS literature
 3. **SHAP analysis** computes per-feature contributions to explain the prediction
 4. **Risk stratification** classifies patients as HIGH (>70%), MODERATE (30-70%), or LOW (<30%)
 5. **LLM report** (optional) generates a structured clinical narrative via Groq Llama 3.3 70B
@@ -672,7 +672,7 @@ Kartic | Gachon University, Republic of Korea
 # ══════════════════════════════════════════════════════════════════════
 
 with gr.Blocks(
-    title="DBS Candidacy Screening Tool",
+    title="Recorded DBS Status Prediction Tool (research demo)",
     css=CUSTOM_CSS,
     theme=gr.themes.Soft(
         primary_hue="teal",
@@ -686,10 +686,10 @@ with gr.Blocks(
     gr.HTML("""
     <div class="app-header">
         <p style="opacity:0.6; font-size:0.75rem; margin:0 0 0.4rem 0; letter-spacing:1px; text-transform:uppercase;">
-        Pre-Implant Screening &middot; Clinical + Wearable + Gait + Voice</p>
-        <h1>DBS Candidacy Screening Tool</h1>
-        <p>An Explainable Multi-Source AI Framework for Deep Brain Stimulation
-        Candidacy Screening in Parkinson's Disease</p>
+        Research demo, not for clinical use &middot; Clinical + Wearable + Gait + Voice</p>
+        <h1>Recorded DBS Status Prediction Tool</h1>
+        <p>Explainable prediction of recorded deep brain stimulation status in Parkinson's disease.
+        Preliminary research model, not a validated candidacy-screening tool.</p>
         <p style="opacity:0.7; font-size:0.85rem; margin-top:0.3rem;">
         Kartic | Gachon University</p>
     </div>
@@ -798,7 +798,7 @@ with gr.Blocks(
     # ── Footer ────────────────────────────────────────────────────────
     gr.HTML("""
     <div class="app-footer">
-        <b>DBS Candidacy Screening Tool</b> v2.0 | Pre-Implant Screening | Research Prototype<br>
+        <b>Recorded DBS Status Prediction Tool</b> v2.0 | Research prototype, not for clinical use<br>
         Clinical + Wearable + Gait + Voice Biomarkers<br>
         Kartic | Gachon University<br>
         <em>For research purposes only. Not intended for clinical decision-making without proper validation.</em>
