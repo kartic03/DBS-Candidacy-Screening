@@ -362,10 +362,10 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
     )
     apply_white_card(fig_shap)
     fig_shap.add_annotation(x=max(values)*0.6, y=len(top_idx)-1,
-                            text="Red = increases risk", showarrow=False,
+                            text="Red = increases probability", showarrow=False,
                             font=dict(color="#c62828", size=10))
     fig_shap.add_annotation(x=min(values)*0.6, y=len(top_idx)-2,
-                            text="Teal = decreases risk", showarrow=False,
+                            text="Teal = decreases probability", showarrow=False,
                             font=dict(color="#00695c", size=10))
 
     # Top drivers markdown
@@ -374,7 +374,7 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         fname = FEATURE_LABELS.get(features[idx], features[idx])
         direction = "increases" if sv[idx] > 0 else "decreases"
         icon_d = "&#x1F53A;" if sv[idx] > 0 else "&#x1F53B;"
-        drivers.append(f"{rank}. {icon_d} **{fname}** = {vals[features[idx]]:.2f} - {direction} risk (SHAP: {sv[idx]:+.4f})")
+        drivers.append(f"{rank}. {icon_d} **{fname}** = {vals[features[idx]]:.2f} - {direction} probability (SHAP: {sv[idx]:+.4f})")
 
     drivers_md = "\n\n".join(drivers)
 
@@ -625,7 +625,7 @@ def get_case_studies():
         css_cls = css_classes.get(cat, "")
 
         cases.append(f"""<div class="case-card {css_cls}">
-<h3 style="color:{color}; margin:0 0 0.5rem 0;">Patient {pid} - {cat} RISK ({prob:.1f}%)</h3>
+<h3 style="color:{color}; margin:0 0 0.5rem 0;">Patient {pid} - {cat} SIMILARITY ({prob:.1f}%)</h3>
 <p><b>Actual outcome:</b> {actual} | <b>H&Y:</b> {hy} | <b>UPDRS-III:</b> {updrs} | <b>Duration:</b> {dur} yr | <b>Subtype:</b> {subtype}</p>
 <div class="report-box">
 <pre style="white-space:pre-wrap; font-size:0.85rem; font-family:inherit; margin:0;">{report}</pre>
@@ -755,9 +755,9 @@ with gr.Blocks(
 
                 # RIGHT: Results
                 with gr.Column(scale=3, min_width=500):
-                    risk_output = gr.HTML(label="Risk assessment")
+                    risk_output = gr.HTML(label="Model output")
                     shap_output = gr.Plot(label="SHAP feature contributions")
-                    gr.Markdown("### Top 5 risk drivers")
+                    gr.Markdown("### Top 5 contributing features")
                     drivers_output = gr.Markdown()
                     summary_output = gr.Markdown()
 
