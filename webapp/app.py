@@ -37,12 +37,9 @@ warnings.filterwarnings("ignore")
 # ══════════════════════════════════════════════════════════════════════
 
 APP_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = APP_DIR.parent
-FIG_DIR = PROJECT_ROOT / "results" / "figures" / "2026-03-20"
-TABLE_DIR = PROJECT_ROOT / "results" / "tables"
-print(f"[JBI App] APP_DIR: {APP_DIR}")
-print(f"[JBI App] PROJECT_ROOT: {PROJECT_ROOT}")
-print(f"[JBI App] FIG_DIR exists: {FIG_DIR.exists()}")
+PROJECT_ROOT = APP_DIR
+FIG_DIR = APP_DIR / "figures"
+TABLE_DIR = APP_DIR
 
 # Load 7-feat pre-registered SVM (paper's primary model: AUC=0.903 LOOCV)
 model = joblib.load(APP_DIR / "svm_7feat_model.joblib")
@@ -55,7 +52,7 @@ explainer = None
 GROQ_KEY = ""
 try:
     import yaml
-    cfg_path = PROJECT_ROOT / "config.yaml"
+    cfg_path = APP_DIR / "config.yaml"
     if cfg_path.exists():
         with open(cfg_path) as f:
             cfg = yaml.safe_load(f)
@@ -72,11 +69,11 @@ def safe_read_csv(path):
     except Exception:
         return pd.DataFrame()
 
-df_results = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "clinical_model_results.csv")
-df_modality = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "modality_model_results.csv")
-df_groq = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "groq_reports_real.csv")
-df_shap_clin = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "shap_clinical_importance.csv")
-df_mann_whitney = safe_read_csv(TABLE_DIR / "2026-03-20" / "supplementary" / "mann_whitney_v2.csv")
+df_results = safe_read_csv(APP_DIR / "clinical_model_results.csv")
+df_modality = safe_read_csv(APP_DIR / "modality_model_results.csv")
+df_groq = safe_read_csv(APP_DIR / "groq_reports_real.csv")
+df_shap_clin = safe_read_csv(APP_DIR / "shap_clinical_importance.csv")
+df_mann_whitney = safe_read_csv(APP_DIR / "mann_whitney_v2.csv")
 
 # Feature display names (7 pre-registered from DBS literature)
 FEATURE_LABELS = {
@@ -317,7 +314,7 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 <p style="margin:0; font-size:0.95rem;">{rec}</p>
 </div>"""
 
-    # SHAP values (perturbation-based for SVM)
+    # SHAP values
     if explainer is not None:
         shap_vals = explainer(X)
         sv = shap_vals.values[0, :, 1] if shap_vals.values.ndim == 3 else shap_vals.values[0]
@@ -392,7 +389,7 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 | DBS probability | **{pct:.1f}%** ({tier}) |
 
 ---
-*Pre-registered 7-feature SVM (LOOCV AUC = 0.88). Research prototype, not for clinical use.*"""
+*Pre-registered 7-feature SVM (LOOCV AUC = 0.903). Research prototype, not for clinical use.*"""
 
     return risk_html, fig_shap, drivers_md, summary_md
 
@@ -472,10 +469,9 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 def build_model_comparison_plot():
     """AUC comparison across all datasets."""
     data = [
-        ("XGBoost Top-10\n(WearGait-PD)", 0.87, 0.79, 0.95, "#004d40"),
-        ("SVM Top-10\n(WearGait-PD)", 0.85, 0.75, 0.93, "#00897b"),
+        ("SVM 7-feat*\n(WearGait-PD)", 0.903, 0.832, 0.960, "#004d40"),
         ("XGBoost\n(PADS Wearable)", 0.859, 0.817, 0.897, "#0277bd"),
-        ("MLP\n(PADS Wearable)", 0.857, 0.81, 0.90, "#4fc3f7"),
+        ("SVM\n(PADS Wearable)", 0.861, 0.815, 0.902, "#4fc3f7"),
         ("XGBoost\n(GaitPDB Gait)", 0.988, 0.973, 0.998, "#2e7d32"),
         ("MLP\n(UCI Voice)", 0.972, 0.945, 0.992, "#7b1fa2"),
     ]
@@ -499,9 +495,9 @@ def build_model_comparison_plot():
         fig.add_annotation(x=name, y=auc + hi + 0.02, text=f"{auc:.2f}",
                            showarrow=False, font=dict(size=11, color="#333"),
                            yanchor="bottom")
-    fig.add_shape(type="line", x0=-0.5, x1=5.5, y0=0.5, y1=0.5,
+    fig.add_shape(type="line", x0=-0.5, x1=4.5, y0=0.5, y1=0.5,
                   line=dict(color="#999", dash="dot", width=1))
-    fig.add_annotation(x=5.5, y=0.5, text="Chance (0.5)", showarrow=False,
+    fig.add_annotation(x=4.5, y=0.5, text="Chance (0.5)", showarrow=False,
                        font=dict(size=9, color="#999"), xanchor="right")
     fig.update_layout(
         title=dict(text="Model performance across datasets (AUC-ROC with 95% CI)", font=dict(color="#333")),
@@ -647,12 +643,22 @@ This interactive demonstration accompanies the manuscript:
 
 | Metric | Value |
 |--------|-------|
-| Primary AUC (LOOCV, n=82, recorded DBS status) | 0.903 (95% CI: 0.832-0.960) |
-| Permutation test | p < 0.001 |
+| Primary AUC (LOOCV, n=82, recorded DBS status) | 0.903 (pre-registered 7-feature SVM) |
+| Sensitivity / NPV | 1.000 / 1.000 (based on 23 DBS-positive events; preliminary, wide 95% CI) |
 | PADS wearable (n=355, PD vs control, exploratory) | AUC = 0.859 |
 | GaitPDB gait (n=165, PD vs control, exploratory) | AUC = 0.988 |
 | UCI voice (n=195, PD vs control, exploratory) | AUC = 0.972 |
-| Total subjects across 4 datasets | 797 |
+| Total subjects | 797 across 4 datasets |
+
+### Benchmark against published tools (reported figures, not a head-to-head)
+
+Published DBS screening tools report the following AUCs in their own study populations. These come from different cohorts with different outcome definitions, so this is a comparison against published figures rather than a same-population head-to-head.
+
+| Tool | Reported AUC |
+|------|-----|
+| FLASQ-PD (Okun 2004; validated in Coleman 2014) | 0.629 |
+| STIMULUS (Wachter 2011; validated in Coleman 2014) | 0.809 |
+| This model, recorded DBS status (LOOCV) | 0.903 |
 
 ### Datasets
 

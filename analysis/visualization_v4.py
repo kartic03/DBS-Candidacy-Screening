@@ -472,9 +472,9 @@ def fig5():
         {'name': 'PADS\n(Wearable, n=355)',
          'auc': 0.859, 'lo': 0.818, 'hi': 0.897, 'color': C['blue']},
         {'name': 'GaitPDB\n(Gait, n=165)',
-         'auc': 0.996, 'lo': 0.973, 'hi': 0.998, 'color': C['green']},
+         'auc': 0.988, 'lo': 0.973, 'hi': 0.998, 'color': C['green']},
         {'name': 'UCI Voice\n(Voice, n=195)',
-         'auc': 0.953, 'lo': 0.945, 'hi': 0.992, 'color': C['pink']},
+         'auc': 0.972, 'lo': 0.945, 'hi': 0.992, 'color': C['pink']},
     ]
 
     fig, ax = plt.subplots(figsize=(7.0, 3.5))

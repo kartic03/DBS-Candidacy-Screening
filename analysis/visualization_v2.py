@@ -292,8 +292,8 @@ def fig5_multisource():
     entries = [
         {'name': 'WearGait-PD\nClinical (n=82)', 'auc': 0.878, 'lo': 0.792, 'hi': 0.950, 'color': MODALITY_COLORS['clinical'], 'label': 'Real DBS'},
         {'name': 'PADS\nWearable (n=355)', 'auc': 0.859, 'lo': 0.818, 'hi': 0.897, 'color': MODALITY_COLORS['wearable'], 'label': 'PD vs Healthy'},
-        {'name': 'GaitPDB\nGait (n=165)', 'auc': 0.996, 'lo': 0.973, 'hi': 0.998, 'color': MODALITY_COLORS['gait'], 'label': 'PD vs Control'},
-        {'name': 'UCI Voice\nVoice (n=195)', 'auc': 0.953, 'lo': 0.945, 'hi': 0.992, 'color': MODALITY_COLORS['voice'], 'label': 'PD vs Healthy'},
+        {'name': 'GaitPDB\nGait (n=165)', 'auc': 0.988, 'lo': 0.973, 'hi': 0.998, 'color': MODALITY_COLORS['gait'], 'label': 'PD vs Control'},
+        {'name': 'UCI Voice\nVoice (n=195)', 'auc': 0.972, 'lo': 0.945, 'hi': 0.992, 'color': MODALITY_COLORS['voice'], 'label': 'PD vs Healthy'},
     ]
 
     fig, ax = plt.subplots(figsize=(9, 5))
