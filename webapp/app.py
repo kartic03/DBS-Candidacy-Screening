@@ -94,6 +94,17 @@ CUSTOM_CSS = """
 /* Global */
 .gradio-container { max-width: 1400px !important; }
 
+/* Force Arial everywhere, including Gradio widgets and Plotly SVG text */
+.gradio-container,
+.gradio-container *,
+.gradio-container input,
+.gradio-container button,
+.gradio-container textarea,
+.gradio-container select,
+.js-plotly-plot .plotly text {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
 /* Plotly chart containers - white card with rounded corners */
 .plot-container, .js-plotly-plot { border-radius: 10px !important; overflow: hidden; }
 
@@ -262,7 +273,7 @@ CUSTOM_CSS = """
 # ══════════════════════════════════════════════════════════════════════
 
 PLOT_BG = "#ffffff"
-PLOT_FONT = dict(family="Inter, Arial, sans-serif", size=12, color="#333333")
+PLOT_FONT = dict(family="Arial, Helvetica, sans-serif", size=12, color="#333333")
 PLOT_GRID = "#eeeeee"
 
 
@@ -560,7 +571,7 @@ def build_dataset_pie():
                            marker=dict(colors=colors_pie),
                            textinfo="label+value", textfont=dict(size=11),
                            hovertemplate="<b>%{label}</b><br>n = %{value}<extra></extra>"))
-    fig.update_layout(title=dict(text="Dataset sizes (n = 797 total)", font=dict(size=14, color="#333")),
+    fig.update_layout(title=dict(text="Dataset sizes (633 participants, 797 analysis units)", font=dict(size=14, color="#333")),
                       height=350, showlegend=False,
                       margin=dict(t=50, b=20, l=20, r=20),
                       paper_bgcolor=PLOT_BG, font=PLOT_FONT)
@@ -697,7 +708,7 @@ with gr.Blocks(
         primary_hue="teal",
         secondary_hue="emerald",
         neutral_hue="slate",
-        font=gr.themes.GoogleFont("Inter"),
+        font=["Arial", "Helvetica", "sans-serif"],
     ),
 ) as demo:
 
