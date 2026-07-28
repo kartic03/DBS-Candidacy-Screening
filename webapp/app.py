@@ -313,15 +313,15 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 
     # Risk tier
     if prob > 0.70:
-        tier, css, icon, rec = "HIGH RISK", "risk-high", "&#x1F534;", "Recommend referral to DBS specialist for comprehensive evaluation."
+        tier, css, icon, rec = "HIGH SIMILARITY", "risk-high", "&#x1F534;", "This profile closely resembles patients with recorded DBS in the training cohort. Research output only, not a referral or candidacy recommendation."
     elif prob > 0.30:
-        tier, css, icon, rec = "MODERATE RISK", "risk-moderate", "&#x1F7E1;", "Consider monitoring with repeat assessment in 6 months. Discuss DBS possibility."
+        tier, css, icon, rec = "MODERATE SIMILARITY", "risk-moderate", "&#x1F7E1;", "This profile sits near the model decision boundary. Research output only, not a referral or candidacy recommendation."
     else:
-        tier, css, icon, rec = "LOW RISK", "risk-low", "&#x1F7E2;", "Continue current treatment. Reassess if symptoms significantly progress."
+        tier, css, icon, rec = "LOW SIMILARITY", "risk-low", "&#x1F7E2;", "This profile resembles patients without recorded DBS in the training cohort. Research output only, not a referral or candidacy recommendation."
 
     # Risk card HTML
     risk_html = f"""<div class="{css}">
-<h2 style="margin:0 0 0.5rem 0;">{icon} {tier} - {pct:.1f}% DBS Probability</h2>
+<h2 style="margin:0 0 0.5rem 0;">{icon} {tier} - {pct:.1f}% recorded-DBS-status probability</h2>
 <p style="margin:0; font-size:0.95rem;">{rec}</p>
 </div>"""
 
