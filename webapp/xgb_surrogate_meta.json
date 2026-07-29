@@ -1,0 +1,39 @@
+{
+  "features": [
+    "disease_duration_years",
+    "updrs_part3_total",
+    "hoehn_yahr",
+    "total_asymmetry",
+    "updrs_part2_total",
+    "subdomain_bradykinesia_UE",
+    "MDSUPDRS_1-1"
+  ],
+  "scaler_mean": [
+    7.439634146341464,
+    25.621951219512194,
+    2.1951219512195124,
+    0.31945253933058804,
+    11.0,
+    6.670731707317073,
+    0.7926829268292683
+  ],
+  "scaler_scale": [
+    5.780971296801583,
+    10.551430655397839,
+    0.5934402468583628,
+    0.14811929400748794,
+    6.975567115680692,
+    3.907637543570472,
+    0.9237754568002743
+  ],
+  "impute_median": [
+    5.9350000000000005,
+    25.0,
+    2.0,
+    0.3242424242424242,
+    9.5,
+    6.0,
+    0.5
+  ],
+  "note": "XGBoost surrogate for SHAP only. Probabilities reported by the app come from the pre-registered SVM; TreeExplainer requires a tree model."
+}

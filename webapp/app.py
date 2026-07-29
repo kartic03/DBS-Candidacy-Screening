@@ -45,8 +45,41 @@ TABLE_DIR = APP_DIR
 model = joblib.load(APP_DIR / "svm_7feat_model.joblib")
 features = joblib.load(APP_DIR / "svm_7feat_features.joblib")
 model_scaler = joblib.load(APP_DIR / "svm_7feat_scaler.joblib")
-# No TreeExplainer for SVM - use perturbation-based feature importance instead
+# TreeExplainer needs a tree model, so Shapley values are computed on an XGBoost
+# surrogate fitted to the same seven pre-registered features, exactly as the
+# Methods describe. The SVM remains the model whose probability is reported.
 explainer = None
+surrogate_meta = None
+try:
+    import json as _json
+    import shap as _shap
+    import xgboost as _xgb
+
+    _meta_path = APP_DIR / "xgb_surrogate_meta.json"
+    _model_path = APP_DIR / "xgb_surrogate.json"
+    if _meta_path.exists() and _model_path.exists():
+        with open(_meta_path) as _f:
+            surrogate_meta = _json.load(_f)
+        _booster = _xgb.Booster()
+        _booster.load_model(str(_model_path))
+        explainer = _shap.TreeExplainer(_booster)
+except Exception as _e:      # fall back to ablation rather than break the app
+    explainer = None
+    surrogate_meta = None
+
+
+def surrogate_shap(X_raw):
+    """Shapley values for one raw feature row, in surrogate log-odds."""
+    mean = np.asarray(surrogate_meta["scaler_mean"], dtype=np.float64)
+    scale = np.asarray(surrogate_meta["scaler_scale"], dtype=np.float64)
+    Xs = (np.asarray(X_raw, dtype=np.float64) - mean) / scale
+    vals = explainer.shap_values(Xs)
+    vals = np.asarray(vals)
+    if vals.ndim == 3:
+        vals = vals[0, :, 1]
+    elif vals.ndim == 2:
+        vals = vals[0]
+    return vals
 
 # Load Groq API key. Prefer the environment (Hugging Face Space secret) so the
 # key need not live in config.yaml, which is world-readable in a public Space.
@@ -326,10 +359,10 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 <p style="margin:0; font-size:0.95rem;">{rec}</p>
 </div>"""
 
-    # SHAP values
-    if explainer is not None:
-        shap_vals = explainer(X)
-        sv = shap_vals.values[0, :, 1] if shap_vals.values.ndim == 3 else shap_vals.values[0]
+    # SHAP values from the XGBoost surrogate (see Methods); ablation only if the
+    # surrogate is unavailable, in which case the values are not Shapley values.
+    if explainer is not None and surrogate_meta is not None:
+        sv = surrogate_shap(X_raw)
     else:
         base_prob = prob
         sv = np.zeros(len(features))
@@ -354,8 +387,9 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         hovertemplate="<b>%{y}</b><br>SHAP: %{x:.4f}<extra></extra>"
     ))
     fig_shap.update_layout(
-        title=dict(text="Feature contributions to this prediction", font=dict(size=14, color="#333")),
-        xaxis_title="SHAP value (impact on DBS probability)",
+        title=dict(text="Feature contributions to this prediction (XGBoost surrogate)",
+                   font=dict(size=14, color="#333")),
+        xaxis_title="SHAP value (log-odds, XGBoost surrogate)",
         yaxis_title="",
         height=420, margin=dict(l=200, r=30, t=50, b=50),
         shapes=[dict(type="line", x0=0, x1=0, y0=-0.5, y1=len(top_idx)-0.5,
@@ -366,18 +400,18 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
     # labels collide with the y-axis feature names and get clipped by the margin.
     fig_shap.add_annotation(
         xref="paper", yref="paper", x=1.0, y=1.06, xanchor="right", showarrow=False,
-        text="<span style='color:#c62828'>Red = increases probability</span>"
+        text="<span style='color:#c62828'>Red = raises the score</span>"
              "&nbsp;&nbsp;&nbsp;"
-             "<span style='color:#00695c'>Teal = decreases probability</span>",
+             "<span style='color:#00695c'>Teal = lowers the score</span>",
         font=dict(size=10))
 
     # Top drivers markdown
     drivers = []
     for rank, idx in enumerate(top_idx[:5], 1):
         fname = FEATURE_LABELS.get(features[idx], features[idx])
-        direction = "increases" if sv[idx] > 0 else "decreases"
+        direction = "raises" if sv[idx] > 0 else "lowers"
         icon_d = "&#x1F53A;" if sv[idx] > 0 else "&#x1F53B;"
-        drivers.append(f"{rank}. {icon_d} **{fname}** = {vals[features[idx]]:.2f} - {direction} probability (SHAP: {sv[idx]:+.4f})")
+        drivers.append(f"{rank}. {icon_d} **{fname}** = {vals[features[idx]]:.2f} - {direction} the score (SHAP: {sv[idx]:+.3f})")
 
     drivers_md = "\n\n".join(drivers)
 
@@ -460,9 +494,8 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         # Same SHAP computation as the prediction panel, so the narrative and the
         # chart describe one set of numbers. Without this the model invented drivers
         # from the raw scores and named features that push the probability DOWN.
-        if explainer is not None:
-            _sv = explainer(X)
-            sv = _sv.values[0, :, 1] if _sv.values.ndim == 3 else _sv.values[0]
+        if explainer is not None and surrogate_meta is not None:
+            sv = surrogate_shap(X_raw)
         else:
             sv = np.zeros(len(features))
             for i in range(len(features)):
@@ -475,7 +508,7 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         contrib_lines = NEWLINE.join(
             f"  {FEATURE_LABELS.get(features[i], features[i])} = "
             f"{vals[features[i]]:.2f}, SHAP {sv[i]:+.4f} "
-            f"({'increases' if sv[i] > 0 else 'decreases'} the probability)"
+            f"({'raises' if sv[i] > 0 else 'lowers'} the score)"
             for i in order)
 
         profile = []
@@ -497,7 +530,8 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
             "Caution Flags: ...\n"
             "Reproduce the section labels exactly as shown, each followed by a colon. Do not wrap "
             "any text in square brackets.\n"
-            "Under Key Drivers you are given the signed SHAP contribution of every feature. "
+            "Under Key Drivers you are given the signed SHAP contribution of every feature, "
+            "computed on an XGBoost surrogate of the same seven features. "
             "Name only features that drive the score in the direction you describe: a positive "
             "SHAP value raises the probability and a negative one lowers it. Never attribute the "
             "score to a feature whose contribution is negative, state explicitly which features "
@@ -518,9 +552,9 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
             f"Cognitive: {cognitive:.0f} | Motor: {', '.join(profile)}"
             + NEWLINE + "Signed SHAP contributions, largest magnitude first:" + NEWLINE
             + contrib_lines + NEWLINE
-            + "Features raising the probability: "
+            + "Features raising the score: "
             + (", ".join(inc) if inc else "none") + NEWLINE
-            + "Features lowering the probability: "
+            + "Features lowering the score: "
             + (", ".join(dec) if dec else "none")
         )
 
