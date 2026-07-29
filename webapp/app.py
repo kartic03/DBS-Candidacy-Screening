@@ -48,15 +48,17 @@ model_scaler = joblib.load(APP_DIR / "svm_7feat_scaler.joblib")
 # No TreeExplainer for SVM - use perturbation-based feature importance instead
 explainer = None
 
-# Load Groq API key
-GROQ_KEY = ""
+# Load Groq API key. Prefer the environment (Hugging Face Space secret) so the
+# key need not live in config.yaml, which is world-readable in a public Space.
+GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 try:
     import yaml
     cfg_path = APP_DIR / "config.yaml"
     if cfg_path.exists():
         with open(cfg_path) as f:
             cfg = yaml.safe_load(f)
-        GROQ_KEY = cfg.get("groq", {}).get("api_key", "")
+        if not GROQ_KEY:
+            GROQ_KEY = cfg.get("groq", {}).get("api_key", "")
         if GROQ_KEY == "YOUR_GROQ_API_KEY":
             GROQ_KEY = ""
 except Exception:
@@ -449,7 +451,8 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         }
         X_raw = np.array([[vals[f] for f in features]], dtype=np.float32)
         X = model_scaler.transform(X_raw)
-        prob = float(model.predict_proba(X)[0, 1]) * 100
+        model_prob = float(model.predict_proba(X)[0, 1])
+        prob = model_prob * 100
         if prob_override is not None:      # case studies quote the LOOCV value
             prob = float(prob_override)
         tier = "HIGH" if prob > 70 else "MODERATE" if prob > 30 else "LOW"
@@ -464,7 +467,7 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
             sv = np.zeros(len(features))
             for i in range(len(features)):
                 Xp = X.copy(); Xp[0, i] = 0.0
-                sv[i] = prob / 100.0 - float(model.predict_proba(Xp)[0, 1])
+                sv[i] = model_prob - float(model.predict_proba(Xp)[0, 1])
 
         order = np.argsort(np.abs(sv))[::-1]
         inc = [FEATURE_LABELS.get(features[i], features[i]) for i in order if sv[i] > 0]
