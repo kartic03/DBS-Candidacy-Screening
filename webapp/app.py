@@ -71,8 +71,7 @@ def safe_read_csv(path):
 
 df_results = safe_read_csv(APP_DIR / "clinical_model_results.csv")
 df_modality = safe_read_csv(APP_DIR / "modality_model_results.csv")
-df_groq = safe_read_csv(APP_DIR / "groq_reports_real.csv")
-df_shap_clin = safe_read_csv(APP_DIR / "shap_clinical_importance.csv")
+df_shap_clin = safe_read_csv(APP_DIR / "shap_7feat_importance.csv")
 df_mann_whitney = safe_read_csv(APP_DIR / "mann_whitney_v2.csv")
 
 # Feature display names (7 pre-registered from DBS literature)
@@ -414,6 +413,22 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 NEWLINE = chr(10)
 
 
+def _predict_probability(disease_duration, updrs3_total, hoehn_yahr, total_asym,
+                         updrs2_total, brady_UE, cognitive):
+    """Model probability for one profile, used by the case-study cards."""
+    vals = {
+        "disease_duration_years": float(disease_duration),
+        "updrs_part3_total": float(updrs3_total),
+        "hoehn_yahr": float(hoehn_yahr),
+        "total_asymmetry": float(total_asym),
+        "updrs_part2_total": float(updrs2_total),
+        "subdomain_bradykinesia_UE": float(brady_UE),
+        "MDSUPDRS_1-1": float(cognitive),
+    }
+    Xr = np.array([[vals[f] for f in features]], dtype=np.float32)
+    return float(model.predict_proba(model_scaler.transform(Xr))[0, 1])
+
+
 def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
                          updrs2_total, brady_UE, cognitive):
     if not GROQ_KEY:
@@ -592,7 +607,7 @@ def build_shap_importance_plot():
     if df_shap_clin.empty:
         return go.Figure().add_annotation(text="SHAP data not available", showarrow=False)
 
-    df = df_shap_clin.head(15).copy()
+    df = df_shap_clin.head(7).copy()
     if "feature" not in df.columns or "mean_abs_shap" not in df.columns:
         cols = df.columns.tolist()
         if len(cols) >= 2:
@@ -612,7 +627,7 @@ def build_shap_importance_plot():
         hovertemplate="<b>%{y}</b><br>Mean |SHAP|: %{x:.4f}<extra></extra>",
     ))
     fig.update_layout(
-        title=dict(text="Top 15 clinical features by SHAP importance (WearGait-PD)", font=dict(color="#333")),
+        title=dict(text="Seven pre-registered features by SHAP importance (WearGait-PD, XGBoost surrogate)", font=dict(color="#333")),
         xaxis_title="Mean |SHAP value|",
         height=500, margin=dict(l=250, r=30, t=50, b=50),
     )
@@ -662,36 +677,45 @@ def build_auc_by_modality():
 # CASE STUDY TAB
 # ══════════════════════════════════════════════════════════════════════
 
-def get_case_studies():
-    if df_groq.empty:
-        return "Case study data not available."
+# Real WearGait-PD patients, with the seven pre-registered feature values used
+# by the model. Reports are generated live through the constrained prompt rather
+# than replayed from groq_reports_real.csv, whose text predates the reframing.
+CASE_PROFILES = [
+    # label, id, recorded DBS, subtype, duration, updrs3, hy, asym, updrs2, bradyUE, cog, note
+    ("HIGH", "NLS036", 1, "Tremor-dominant",
+     18.35, 46.0, 2.5, 0.1818, 21.0, 5.0, 1.0, ""),
+    ("BORDERLINE", "NLS196", 1, "Akinetic-rigid",
+     14.72, 52.0, 4.0, 0.3242, 30.0, 13.0, 3.0, ""),
+    ("LOW", "NLS102", 0, "Akinetic-rigid",
+     5.94, 14.0, 1.5, 0.6364, 2.0, 3.0, 0.0,
+     " Disease duration is not recorded for this patient; the cohort median "
+     "(5.94 years) is substituted here, as the analysis pipeline imputes it "
+     "within each fold."),
+]
 
-    cases = []
+
+def get_case_studies():
     colors = {"HIGH": "#d32f2f", "BORDERLINE": "#f57c00", "LOW": "#2e7d32"}
     css_classes = {"HIGH": "case-high", "BORDERLINE": "case-moderate", "LOW": "case-low"}
-
-    for _, row in df_groq.iterrows():
-        cat = row.get("category", "UNKNOWN")
-        pid = row.get("patient_id", "N/A")
-        prob = row.get("dbs_prob", 0) * 100
-        actual = "DBS+" if row.get("actual_dbs", 0) == 1 else "DBS-"
-        hy = row.get("hoehn_yahr", "N/A")
-        updrs = row.get("updrs_part3", "N/A")
-        dur = row.get("disease_duration", "N/A")
-        subtype = row.get("motor_subtype", "N/A")
-        report = row.get("report_text", "No report available.")
+    out = []
+    for (cat, pid, actual_dbs, subtype, dur, u3, hy, asym, u2, brady, cog, note) in CASE_PROFILES:
+        report = generate_groq_report(dur, u3, hy, asym, u2, brady, cog)
+        report = report.split("\n\n", 1)[-1].split("---")[0].strip()
+        prob = _predict_probability(dur, u3, hy, asym, u2, brady, cog) * 100
+        status = "recorded DBS-positive" if actual_dbs == 1 else "no recorded DBS"
         color = colors.get(cat, "#999")
         css_cls = css_classes.get(cat, "")
-
-        cases.append(f"""<div class="case-card {css_cls}">
+        out.append(f"""<div class="case-card {css_cls}">
 <h3 style="color:{color}; margin:0 0 0.5rem 0;">Patient {pid} - {cat} SIMILARITY ({prob:.1f}%)</h3>
-<p><b>Actual outcome:</b> {actual} | <b>H&Y:</b> {hy} | <b>UPDRS-III:</b> {updrs} | <b>Duration:</b> {dur} yr | <b>Subtype:</b> {subtype}</p>
+<p><b>Recorded DBS status:</b> {status} | <b>H&amp;Y:</b> {hy} | <b>UPDRS-III:</b> {u3:.0f} |
+<b>Duration:</b> {dur:.1f} yr | <b>Subtype:</b> {subtype}</p>
 <div class="report-box">
 <pre style="white-space:pre-wrap; font-size:0.85rem; font-family:inherit; margin:0;">{report}</pre>
 </div>
+<p style="font-size:0.78rem; color:#666; margin:0.5rem 0 0 0;">Report generated live by the
+same constrained pipeline as the Prediction demo tab.{note}</p>
 </div>""")
-
-    return "\n".join(cases)
+    return "\n".join(out)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -712,7 +736,7 @@ This interactive demonstration accompanies the manuscript:
 1. **Input** clinical parameters (UPDRS-III, UPDRS-II, H&Y stage, disease duration, motor asymmetry, bradykinesia, cognitive status)
 2. **SVM classifier** predicts recorded DBS status probability using 7 pre-registered clinical features from DBS literature
 3. **SHAP analysis** computes per-feature contributions to explain the prediction
-4. **Risk stratification** classifies patients as HIGH (>70%), MODERATE (30-70%), or LOW (<30%)
+4. **Similarity tier** classifies the profile as HIGH (>70%), MODERATE (30-70%), or LOW (<30%) resemblance to patients with recorded DBS. This is not a risk score and not a candidacy judgement.
 5. **LLM report** (optional) generates a structured clinical narrative via Groq Llama 3.3 70B
 
 ### Key results
@@ -720,7 +744,7 @@ This interactive demonstration accompanies the manuscript:
 | Metric | Value |
 |--------|-------|
 | Primary AUC (LOOCV, n=82, recorded DBS status) | 0.903 (pre-registered 7-feature SVM) |
-| Sensitivity / NPV | 1.000 / 1.000 (based on 23 DBS-positive events; preliminary, wide 95% CI) |
+| Sensitivity / NPV | 1.000 / 1.000 (23 DBS-positive events; bootstrap 95% CI 0.800-1.000 and 0.914-1.000, preliminary) |
 | PADS wearable (n=355, PD vs control, exploratory) | AUC = 0.859 |
 | GaitPDB gait (n=165, PD vs control, exploratory) | AUC = 0.625 (72 force-plate features only) |
 | UCI voice (n=195, PD vs control, exploratory) | AUC = 0.972 |
@@ -747,7 +771,7 @@ Published DBS screening tools report the following AUCs in their own study popul
 
 - Small DBS-positive cohort (n = 23) limits generalizability
 - Model trained on WearGait-PD clinical scores only (not raw sensor data)
-- No prospective clinical validation
+- No prospective clinical validation\n- The operating point was chosen on the same leave-one-out predictions it is reported from, so sensitivity and specificity are optimistically biased
 - Research prototype: **not intended for clinical use**
 
 ### Contact
@@ -872,9 +896,13 @@ with gr.Blocks(
         # ══════════════════════════════════════════════════════════════
         with gr.Tab("Case studies", id="cases"):
             gr.Markdown("### Real patient case studies from WearGait-PD")
-            gr.Markdown("Three representative patients with LLM-generated clinical screening reports "
-                        "(Groq Llama 3.3 70B). These are real patients with actual DBS outcomes.")
-            gr.HTML(value=get_case_studies)
+            gr.Markdown("Three representative patients with their recorded DBS status. Reports are "
+                        "generated on demand by the same constrained pipeline used in the "
+                        "Prediction demo tab (Groq Llama 3.3 70B), so they always reflect the "
+                        "current prompt.")
+            case_btn = gr.Button("Generate case study reports", variant="secondary")
+            case_out = gr.HTML()
+            case_btn.click(fn=get_case_studies, inputs=None, outputs=case_out)
 
 
         # ══════════════════════════════════════════════════════════════
