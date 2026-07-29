@@ -430,7 +430,7 @@ def _predict_probability(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 
 
 def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
-                         updrs2_total, brady_UE, cognitive):
+                         updrs2_total, brady_UE, cognitive, prob_override=None):
     if not GROQ_KEY:
         return "Groq API key not configured. Set groq.api_key in config.yaml to enable LLM reports."
 
@@ -450,6 +450,8 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         X_raw = np.array([[vals[f] for f in features]], dtype=np.float32)
         X = model_scaler.transform(X_raw)
         prob = float(model.predict_proba(X)[0, 1]) * 100
+        if prob_override is not None:      # case studies quote the LOOCV value
+            prob = float(prob_override)
         tier = "HIGH" if prob > 70 else "MODERATE" if prob > 30 else "LOW"
 
         # Same SHAP computation as the prediction panel, so the narrative and the
@@ -664,12 +666,17 @@ def build_auc_by_modality():
                            textposition="outside",
                            textfont=dict(color="#333333", size=12),
                            width=0.55))
+    # Axis floor must sit below the lowest bar: at the previous floor of 0.70 the
+    # gait bar (0.625) fell outside the axis and rendered as nothing at all.
     fig.update_layout(title=dict(text="Best AUC by modality", font=dict(size=14, color="#333")),
-                      yaxis=dict(title="AUC-ROC", range=[0.7, 1.08]),
+                      yaxis=dict(title="AUC-ROC", range=[0.4, 1.08]),
                       height=350, showlegend=False,
                       margin=dict(t=50, b=40, l=50, r=30),
                       paper_bgcolor=PLOT_BG, plot_bgcolor=PLOT_BG, font=PLOT_FONT,
                       xaxis=dict(gridcolor=PLOT_GRID), yaxis_gridcolor=PLOT_GRID)
+    fig.add_hline(y=0.5, line=dict(color="#999999", width=1, dash="dash"),
+                  annotation_text="chance", annotation_position="right",
+                  annotation_font=dict(size=10, color="#777777"))
     return fig
 
 
@@ -681,12 +688,16 @@ def build_auc_by_modality():
 # by the model. Reports are generated live through the constrained prompt rather
 # than replayed from groq_reports_real.csv, whose text predates the reframing.
 CASE_PROFILES = [
-    # label, id, recorded DBS, subtype, duration, updrs3, hy, asym, updrs2, bradyUE, cog, note
-    ("HIGH", "NLS036", 1, "Tremor-dominant",
+    # id, recorded DBS, subtype, LOOCV probability (%), duration, updrs3, hy,
+    # asym, updrs2, bradyUE, cog, note.
+    # The probability is the leave-one-out value reported in the manuscript, not
+    # an in-sample refit: the deployed model was fitted on all 82 patients and
+    # scores these three optimistically (92.7 / 88.6 / 0.3).
+    ("NLS036", 1, "Tremor-dominant", 98.4,
      18.35, 46.0, 2.5, 0.1818, 21.0, 5.0, 1.0, ""),
-    ("BORDERLINE", "NLS196", 1, "Akinetic-rigid",
+    ("NLS196", 1, "Akinetic-rigid", 48.8,
      14.72, 52.0, 4.0, 0.3242, 30.0, 13.0, 3.0, ""),
-    ("LOW", "NLS102", 0, "Akinetic-rigid",
+    ("NLS102", 0, "Akinetic-rigid", 0.0,
      5.94, 14.0, 1.5, 0.6364, 2.0, 3.0, 0.0,
      " Disease duration is not recorded for this patient; the cohort median "
      "(5.94 years) is substituted here, as the analysis pipeline imputes it "
@@ -698,10 +709,10 @@ def get_case_studies():
     colors = {"HIGH": "#d32f2f", "BORDERLINE": "#f57c00", "LOW": "#2e7d32"}
     css_classes = {"HIGH": "case-high", "BORDERLINE": "case-moderate", "LOW": "case-low"}
     out = []
-    for (cat, pid, actual_dbs, subtype, dur, u3, hy, asym, u2, brady, cog, note) in CASE_PROFILES:
-        report = generate_groq_report(dur, u3, hy, asym, u2, brady, cog)
+    for (pid, actual_dbs, subtype, prob, dur, u3, hy, asym, u2, brady, cog, note) in CASE_PROFILES:
+        report = generate_groq_report(dur, u3, hy, asym, u2, brady, cog, prob_override=prob)
         report = report.split("\n\n", 1)[-1].split("---")[0].strip()
-        prob = _predict_probability(dur, u3, hy, asym, u2, brady, cog) * 100
+        cat = "HIGH" if prob > 70 else "MODERATE" if prob > 30 else "LOW"
         status = "recorded DBS-positive" if actual_dbs == 1 else "no recorded DBS"
         color = colors.get(cat, "#999")
         css_cls = css_classes.get(cat, "")
@@ -713,7 +724,7 @@ def get_case_studies():
 <pre style="white-space:pre-wrap; font-size:0.85rem; font-family:inherit; margin:0;">{report}</pre>
 </div>
 <p style="font-size:0.78rem; color:#666; margin:0.5rem 0 0 0;">Report generated live by the
-same constrained pipeline as the Prediction demo tab.{note}</p>
+same constrained pipeline as the Prediction demo tab. The probability is the leave-one-out value reported in the manuscript.{note}</p>
 </div>""")
     return "\n".join(out)
 
