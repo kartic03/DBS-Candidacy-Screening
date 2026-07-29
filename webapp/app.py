@@ -361,12 +361,14 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
                      line=dict(color="#999", width=1, dash="dash"))],
     )
     apply_white_card(fig_shap)
-    fig_shap.add_annotation(x=max(values)*0.6, y=len(top_idx)-1,
-                            text="Red = increases probability", showarrow=False,
-                            font=dict(color="#c62828", size=10))
-    fig_shap.add_annotation(x=min(values)*0.6, y=len(top_idx)-2,
-                            text="Teal = decreases probability", showarrow=False,
-                            font=dict(color="#00695c", size=10))
+    # Anchored to the paper, not to data coordinates: at data coordinates these
+    # labels collide with the y-axis feature names and get clipped by the margin.
+    fig_shap.add_annotation(
+        xref="paper", yref="paper", x=1.0, y=1.06, xanchor="right", showarrow=False,
+        text="<span style='color:#c62828'>Red = increases probability</span>"
+             "&nbsp;&nbsp;&nbsp;"
+             "<span style='color:#00695c'>Teal = decreases probability</span>",
+        font=dict(size=10))
 
     # Top drivers markdown
     drivers = []
@@ -409,6 +411,9 @@ def predict_dbs(disease_duration, updrs3_total, hoehn_yahr, total_asym,
 # GROQ LLM REPORT
 # ══════════════════════════════════════════════════════════════════════
 
+NEWLINE = chr(10)
+
+
 def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
                          updrs2_total, brady_UE, cognitive):
     if not GROQ_KEY:
@@ -432,6 +437,27 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
         prob = float(model.predict_proba(X)[0, 1]) * 100
         tier = "HIGH" if prob > 70 else "MODERATE" if prob > 30 else "LOW"
 
+        # Same SHAP computation as the prediction panel, so the narrative and the
+        # chart describe one set of numbers. Without this the model invented drivers
+        # from the raw scores and named features that push the probability DOWN.
+        if explainer is not None:
+            _sv = explainer(X)
+            sv = _sv.values[0, :, 1] if _sv.values.ndim == 3 else _sv.values[0]
+        else:
+            sv = np.zeros(len(features))
+            for i in range(len(features)):
+                Xp = X.copy(); Xp[0, i] = 0.0
+                sv[i] = prob / 100.0 - float(model.predict_proba(Xp)[0, 1])
+
+        order = np.argsort(np.abs(sv))[::-1]
+        inc = [FEATURE_LABELS.get(features[i], features[i]) for i in order if sv[i] > 0]
+        dec = [FEATURE_LABELS.get(features[i], features[i]) for i in order if sv[i] < 0]
+        contrib_lines = NEWLINE.join(
+            f"  {FEATURE_LABELS.get(features[i], features[i])} = "
+            f"{vals[features[i]]:.2f}, SHAP {sv[i]:+.4f} "
+            f"({'increases' if sv[i] > 0 else 'decreases'} the probability)"
+            for i in order)
+
         profile = []
         if brady_UE > 8: profile.append("bradykinetic")
         if updrs3_total > 30: profile.append("moderate-severe")
@@ -450,11 +476,19 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
             "Suggested Next Step: ...\n"
             "Caution Flags: ...\n"
             "Reproduce the section labels exactly as shown, each followed by a colon. Do not wrap "
-            "any text in square brackets. Under Suggested Next Step, describe only assessment or "
-            "follow-up actions, for example specialist review, repeat assessment interval, or "
-            "further work-up. Never state or imply that the patient is or is not a DBS candidate, "
-            "never recommend surgery, and never name a stimulation target such as STN or GPi. "
-            "Length: 120-160 words total. Tone: clinical, direct."
+            "any text in square brackets.\n"
+            "Under Key Drivers you are given the signed SHAP contribution of every feature. "
+            "Name only features that drive the score in the direction you describe: a positive "
+            "SHAP value raises the probability and a negative one lowers it. Never attribute the "
+            "score to a feature whose contribution is negative, state explicitly which features "
+            "push the probability down, and do not infer a rationale from the raw scores.\n"
+            "Under Suggested Next Step, describe only repeat assessment or continued routine "
+            "monitoring in a research context. Do not recommend referral, specialist review, "
+            "surgical evaluation, or any change in management.\n"
+            "Never state or imply that the patient is or is not a DBS candidate, never recommend "
+            "surgery, and never name a stimulation target such as STN or GPi.\n"
+            "The report must be between 120 and 160 words. Expand any section that falls short. "
+            "Tone: clinical, direct."
         )
         user_prompt = (
             f"DBS Prob: {prob:.1f}% ({tier}) | "
@@ -462,6 +496,12 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
             f"H&Y: {hoehn_yahr} | UPDRS-II: {updrs2_total:.0f} | "
             f"Bradykinesia UE: {brady_UE:.0f} | Asymmetry: {total_asym:.2f} | "
             f"Cognitive: {cognitive:.0f} | Motor: {', '.join(profile)}"
+            + NEWLINE + "Signed SHAP contributions, largest magnitude first:" + NEWLINE
+            + contrib_lines + NEWLINE
+            + "Features raising the probability: "
+            + (", ".join(inc) if inc else "none") + NEWLINE
+            + "Features lowering the probability: "
+            + (", ".join(dec) if dec else "none")
         )
 
         response = client.chat.completions.create(
@@ -470,7 +510,7 @@ def generate_groq_report(disease_duration, updrs3_total, hoehn_yahr, total_asym,
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=300, temperature=0.3
+            max_tokens=450, temperature=0.3
         )
         report = response.choices[0].message.content
         return f"### Llama 3.3 70B Clinical Report (via Groq)\n\n{report}\n\n---\n*Generated by Llama 3.3 70B. For research purposes only.*"
@@ -716,7 +756,7 @@ with gr.Blocks(
     gr.HTML("""
     <div class="app-header">
         <p style="opacity:0.6; font-size:0.75rem; margin:0 0 0.4rem 0; letter-spacing:1px; text-transform:uppercase;">
-        Research demo, not for clinical use &middot; Clinical + Wearable + Gait + Voice</p>
+        Research demo, not for clinical use &middot; 7 pre-registered clinical features</p>
         <h1>Recorded DBS Status Prediction Tool</h1>
         <p>Explainable prediction of recorded deep brain stimulation status in Parkinson's disease.
         Preliminary research model, not a validated candidacy-screening tool.</p>
@@ -730,7 +770,7 @@ with gr.Blocks(
         # ══════════════════════════════════════════════════════════════
         # TAB 1: SCREENING TOOL
         # ══════════════════════════════════════════════════════════════
-        with gr.Tab("Screening tool", id="screening"):
+        with gr.Tab("Prediction demo", id="screening"):
             with gr.Row(equal_height=False):
 
                 # LEFT: Patient inputs
