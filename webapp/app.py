@@ -489,7 +489,7 @@ def build_model_comparison_plot():
         ("SVM 7-feat*\n(WearGait-PD)", 0.903, 0.832, 0.960, "#004d40"),
         ("XGBoost\n(PADS Wearable)", 0.859, 0.817, 0.897, "#0277bd"),
         ("SVM\n(PADS Wearable)", 0.861, 0.815, 0.902, "#4fc3f7"),
-        ("XGBoost\n(GaitPDB Gait)", 0.988, 0.973, 0.998, "#2e7d32"),
+        ("XGBoost\n(GaitPDB Gait)", 0.625, 0.540, 0.708, "#2e7d32"),
         ("MLP\n(UCI Voice)", 0.972, 0.945, 0.992, "#7b1fa2"),
     ]
 
@@ -581,7 +581,7 @@ def build_dataset_pie():
 def build_auc_by_modality():
     """AUC by modality bar chart."""
     modalities = ["Clinical", "Wearable", "Gait", "Voice"]
-    aucs = [0.903, 0.859, 0.988, 0.972]
+    aucs = [0.903, 0.859, 0.625, 0.972]
     colors_bar = ["#004d40", "#0277bd", "#2e7d32", "#7b1fa2"]
 
     fig = go.Figure(go.Bar(x=modalities, y=aucs,
@@ -663,9 +663,9 @@ This interactive demonstration accompanies the manuscript:
 | Primary AUC (LOOCV, n=82, recorded DBS status) | 0.903 (pre-registered 7-feature SVM) |
 | Sensitivity / NPV | 1.000 / 1.000 (based on 23 DBS-positive events; preliminary, wide 95% CI) |
 | PADS wearable (n=355, PD vs control, exploratory) | AUC = 0.859 |
-| GaitPDB gait (n=165, PD vs control, exploratory) | AUC = 0.988 |
+| GaitPDB gait (n=165, PD vs control, exploratory) | AUC = 0.625 (72 force-plate features only) |
 | UCI voice (n=195, PD vs control, exploratory) | AUC = 0.972 |
-| Total subjects | 797 across 4 datasets |
+| Total participants | 633 across 4 datasets (797 analysis units) |
 
 ### Benchmark against published tools (reported figures, not a head-to-head)
 
@@ -789,9 +789,9 @@ with gr.Blocks(
             <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:1rem; margin:1rem 0;">
                 <div class="stat-card"><h3>0.903</h3><p>Primary AUC<br>(LOOCV)</p></div>
                 <div class="stat-card"><h3>0.859</h3><p>Wearable AUC<br>(PADS)</p></div>
-                <div class="stat-card"><h3>0.988</h3><p>Gait AUC<br>(GaitPDB)</p></div>
+                <div class="stat-card"><h3>0.625</h3><p>Gait AUC<br>(GaitPDB)</p></div>
                 <div class="stat-card"><h3>0.972</h3><p>Voice AUC<br>(UCI)</p></div>
-                <div class="stat-card"><h3>797</h3><p>Total subjects<br>(4 datasets)</p></div>
+                <div class="stat-card"><h3>633</h3><p>Participants<br>(797 analysis units)</p></div>
             </div>
             """)
 
